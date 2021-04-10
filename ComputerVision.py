@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Computer Vision module for Demo-1. SEED Lab: Group 007.
+"""Computer Vision module for Demo-2. SEED Lab: Group 007.
 
 REQUIREMENTS AND COMPATIBILITY:
 Requires install of numpy, picamera, time, math, and opencv. 
@@ -53,6 +53,7 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 import picamera
 import time
+from time import time
 import cv2 as cv
 import numpy as np
 import math
@@ -61,16 +62,16 @@ import smbus
 import busio
 import board
 
-# I2C INITIALIZATION
-bus = smbus.SMBus(1)
-i2c = busio.I2C(board.SCL, board.SDA)
-
-# LCD INITIALIZATION
-lcd_columns = 16
-lcd_rows = 2
-lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
-lcd.clear()
-lcd.color = [100, 0, 100]
+### I2C INITIALIZATION
+##bus = smbus.SMBus(1)
+##i2c = busio.I2C(board.SCL, board.SDA)
+##
+### LCD INITIALIZATION
+##lcd_columns = 16
+##lcd_rows = 2
+##lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
+##lcd.clear()
+##lcd.color = [100, 0, 100]
 
 # FOR ZERO ANGLE CALIBRATION
 USE_CALIB_ANGLE = False
@@ -80,11 +81,28 @@ CALIB_ANGLE = - CALIB_ANGLE_FILE['zero_angle']
 
 
 # TO DISPLAY STREAM IMAGES
-DISP_IMGS = True
-# Amount of time to display images (ms)
-WAIT_KEY = 5000
+DISP_STREAM = False
+# TO DISPLAY PRECISE IMAGE
+DISP_IMG = True
+# TO TIME STREAM FRAMES
+# THIS IS BROKEN, DON'T USE IT RIGHT NOW
+TIMING = False
+
+# AMOUNT OF TIME TO DISPLAY STREAM IMAGES
+WAIT_KEY = 1000
+# Set wait key to minimum for fastest stream when not displaying
+if DISP_STREAM == False:
+    WAIT_KEY = 1
+
+## __________IMAGE SCALING__________ ##
+# Image scale for rapid detection
+SMALL_SCALE = 0.5
+# 0.25 -> 1.17 fps
+
+# Image scale for precise detection
+LARGE_SCALE = 0.5
 # Scale for resizing images for display
-SCALE = 0.5
+DISP_SCALE = 0.5
 
 # Initialize camera
 camera = PiCamera()
@@ -97,6 +115,7 @@ MARKER_LENGTH_IN = 3.8125
 
 # Image capture dimensions
 # Max res: 3280 x 2464
+# MAX WORKING DIMENSIONS
 WIDTH = 3264
 HEIGHT = 2464
 
@@ -105,6 +124,14 @@ HEIGHT = 2464
 KD = np.load('CV_CameraCalibrationMatrices.npz')
 K = KD['k']
 DIST_COEFFS = KD['dist']
+
+
+def disp_resize(img):
+    # Resize image for smaller display size
+    disp_img = cv.resize(img, (int(img.shape[1] * DISP_SCALE),
+                               int(img.shape[0] * DISP_SCALE)
+                               ))
+    return disp_img
 
 
 def detect_marker(img):
@@ -120,8 +147,8 @@ def detect_marker(img):
     # If an Aruco marker is detected
     if ids is not None:
         print("Marker detected")
-        lcd.clear()
-        lcd.message = "Marker detected"
+##        lcd.clear()
+##        lcd.message = "Marker detected"
         for tag in ids:
             cv.aruco.drawDetectedMarkers(image=img,
                                          corners=corners,
@@ -134,19 +161,14 @@ def detect_marker(img):
     # If an Aruco marker is not detected
     if ids is None:
         print("Marker not detected")
-        lcd.clear()
-        lcd.message = "Marker not detected"
+##        lcd.clear()
+##        lcd.message = "Marker not detected"
         # Return zeros
-        angle_deg = 0
-        angle_rad = 0
+        angle_deg = 360
+        angle_rad = angle_deg * math.pi / 180
         distance = 0
 
-    # Resize image for smaller display size
-    disp_img = cv.resize(img, (int(img.shape[1] * SCALE),
-                               int(img.shape[0] * SCALE)
-                               ))
-
-    return distance, angle_deg, angle_rad, disp_img
+    return distance, angle_deg, angle_rad, img
 
 
 def get_vals(corners):
@@ -178,29 +200,115 @@ def get_vals(corners):
     return distance, angle_rad, angle_deg
 
 
-if __name__ == '__main__':
-    camera.resolution = (WIDTH, HEIGHT)
+def state0(state):
+    print("Running State 0")
+    width = int(WIDTH * SMALL_SCALE)
+    height = int(HEIGHT * SMALL_SCALE)
+    camera.resolution = (width, height)
+        
 
     # Set up picamera array
     with picamera.array.PiRGBArray(camera) as stream:
         # Run capture stream continuously
-        while True:
+        while state == 0:
             camera.capture(stream, format="bgr")
             img = stream.array
 
             # Convert to grayscale for Aruco detection
             gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-            
+                
             # Detect Aruco marker, and get detected angle and distance
-            distance, angle_deg, angle_rad, disp_img = detect_marker(gray_img)
-            lcd.message = '\n' + str(round(angle_deg, 2)) + " degrees"
+#####            distance, angle_deg, angle_rad, disp_img = detect_marker(gray_img)
+##            lcd.message = '\n' + str(round(angle_deg, 2)) + " degrees"
 
+            # Detect if Aruco marker is present
+            corners, ids, _ = cv.aruco.detectMarkers(image=img,
+                                             dictionary=arucoDict,
+                                             cameraMatrix=K,
+                                             distCoeff=DIST_COEFFS
+                                             )
+            if ids is None:
+                print("Beacon not detected")
+
+            if ids is not None:
+                print("Beacon detected")
+                state = 1
+            
             # Optional display stream images
-            if DISP_IMGS is True:
+            if DISP_STREAM is True:
+                # Draw the detected marker
+                if ids is not None:
+                    for tag in ids:
+                        cv.aruco.drawDetectedMarkers(image=img,
+                                                     corners=corners,
+                                                     ids=ids,
+                                                     borderColor=(0, 0, 255)
+                                                     )
+                # Scale img for display
+                disp_img = disp_resize(img)
+                # Display img
                 cv.imshow("Stream", disp_img)
                 cv.waitKey(WAIT_KEY)
                 cv.destroyWindow("Stream")
-            
+                
             # Truncate the stream to clear for next image capture
             stream.truncate(0)
+
+                
+            return state
+
+
+def state1():
+    print("Running State 1")
+    camera.resolution = (WIDTH, HEIGHT)
+
+    # Set up picamera array
+    with picamera.array.PiRGBArray(camera) as stream:
+        # Capture one image
+        camera.capture(stream, format="bgr")
+        img = stream.array
+
+        # Convert to grayscale for Aruco detection
+        gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+                
+        # Detect Aruco marker, and get detected angle and distance
+        distance, angle_deg, angle_rad, img = detect_marker(gray_img)
+##            lcd.message = '\n' + str(round(angle_deg, 2)) + " degrees"
+
+        # Optional display stream images
+        if DISP_IMG is True:
+            # Resize image for display
+            disp_img = disp_resize(img)
+            # Display image
+            cv.imshow("Precise Img", disp_img)
+            cv.waitKey(0)
+            cv.destroyWindow("Precise Img")
+                
+        # Truncate the stream to clear for next image capture
+        stream.truncate(0)
+  
+            
+if __name__ == '__main__':
+    # Initialize state
+    state = 0
+    start = time()
+
+    while True:
+        if state == 0:
+            state = state0(state)
+            # BROKEN
+            if TIMING:
+                stop = time()
+                time = stop - start
+                print("--- %s seconds ---" % round(time, 3))
+                fps = 1 / time
+                fps = str(round(fps, 3))
+                print("--- %s fps ---" % fps)
+                
+        if state == 1:
+            state1()
+            # End after state 1
+            break;
+        
+    
             
