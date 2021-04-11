@@ -81,7 +81,7 @@ CALIB_ANGLE = - CALIB_ANGLE_FILE['zero_angle']
 
 
 # TO DISPLAY STREAM IMAGES
-DISP_STREAM = False
+DISP_STREAM = True
 # TO DISPLAY PRECISE IMAGE
 DISP_IMG = True
 # TO TIME STREAM FRAMES
@@ -96,11 +96,11 @@ if DISP_STREAM == False:
 
 ## __________IMAGE SCALING__________ ##
 # Image scale for rapid detection
-SMALL_SCALE = 0.5
+SMALL_SCALE = 0.2
 # 0.25 -> 1.17 fps
 
 # Image scale for precise detection
-LARGE_SCALE = 0.5
+LARGE_SCALE = 0.2
 # Scale for resizing images for display
 DISP_SCALE = 0.5
 
@@ -205,6 +205,7 @@ def state0(state):
     width = int(WIDTH * SMALL_SCALE)
     height = int(HEIGHT * SMALL_SCALE)
     camera.resolution = (width, height)
+    camera.exposure_mode = 'sports'
         
 
     # Set up picamera array
@@ -261,6 +262,7 @@ def state0(state):
 def state1():
     print("Running State 1")
     camera.resolution = (WIDTH, HEIGHT)
+    camera.exposure_mode = 'off'
 
     # Set up picamera array
     with picamera.array.PiRGBArray(camera) as stream:
