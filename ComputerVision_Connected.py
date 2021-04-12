@@ -84,9 +84,6 @@ CALIB_ANGLE = - CALIB_ANGLE_FILE['zero_angle']
 DISP_STREAM = True
 # TO DISPLAY PRECISE IMAGE
 DISP_IMG = True
-# TO TIME STREAM FRAMES
-# THIS IS BROKEN, DON'T USE IT RIGHT NOW
-TIMING = False
 
 # AMOUNT OF TIME TO DISPLAY STREAM IMAGES
 WAIT_KEY = 1000
@@ -291,6 +288,8 @@ def state1():
                 
         # Truncate the stream to clear for next image capture
         stream.truncate(0)
+
+        return distance, angle_deg, angle_rad
   
             
 if __name__ == '__main__':
@@ -301,9 +300,9 @@ if __name__ == '__main__':
     while True:
         ### GET 'state' FROM ARDUINO ###
         if state == 0:
-            state = state0(state)
+            state0(state)
                 
         if state == 1:
-            state1()
+            distance, angle_deg, angle_rad = state1()
             # End after state 1
             break;
