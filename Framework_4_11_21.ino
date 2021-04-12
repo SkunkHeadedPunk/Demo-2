@@ -118,7 +118,7 @@ distancetogo = fixme;
           md.setM1Speed(0);  // Immediately stops left motor
           md.setM2Speed(0);  // Immediately stops right motor
           state = 1; 
-          // send state value to Pi in order to get precise image
+          // send state value to Pi in order to get precise image 
         }
         break;
         
