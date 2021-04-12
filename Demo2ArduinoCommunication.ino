@@ -3,7 +3,6 @@
 #define ADDRESS           0x04
 
 byte dataFromPi[32];
-byte dataToPi[32];
 int piState = 0;
 int state = 0;
 float angleRead = 360;
@@ -31,10 +30,9 @@ void receiveData(int byteCount) {
   piState = dataFromPi[0];
   angleRead = dataFromPi[1];
   distanceRead = dataFromPi[2];
-  state = dataFromPi[3];
 }
 
 //Callback for sending data to Pi
 void sendData() {
-  Wire.write(dataToPi, 32);
+  Wire.write(state);
 }
