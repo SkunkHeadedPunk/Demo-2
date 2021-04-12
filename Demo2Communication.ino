@@ -3,7 +3,7 @@
 #define ADDRESS           0x04
 
 byte dataFromPi[32];
-byte dataToPi[4];
+byte dataToPi[32];
 int piState = 0;
 int state = 0;
 float angleRead = 360;
