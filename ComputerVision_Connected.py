@@ -62,16 +62,16 @@ import smbus
 import busio
 import board
 
-### I2C INITIALIZATION
-##bus = smbus.SMBus(1)
-##i2c = busio.I2C(board.SCL, board.SDA)
-##
-### LCD INITIALIZATION
-##lcd_columns = 16
-##lcd_rows = 2
-##lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
-##lcd.clear()
-##lcd.color = [100, 0, 100]
+# I2C INITIALIZATION
+bus = smbus.SMBus(1)
+i2c = busio.I2C(board.SCL, board.SDA)
+
+# LCD INITIALIZATION
+lcd_columns = 16
+lcd_rows = 2
+lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
+lcd.clear()
+lcd.color = [100, 0, 100]
 
 # FOR ZERO ANGLE CALIBRATION
 USE_CALIB_ANGLE = False
@@ -193,6 +193,27 @@ def get_vals(corners):
     return distance, angle_rad, angle_deg
 
 
+####### FUNCTION FOR WRITING ARRAY TO ARDUINO #######
+def writeBlock(block):
+    try:
+        bus.write_i2c_block_data(address, 1, block)
+        #lcd.message = "Sent: " + userString + "\n"
+    except:
+        print("I2C Error")
+        lcd.message = "I2C Error"
+    return -1
+
+
+####### FUNCTION FOR READING A NUMBER FROM THE ARDUINO #######
+def readNumber():
+    try:
+        number = bus.read_byte(address)
+        return number
+    except:
+        print("I2C Error")
+        return 0
+
+
 def state0(state):
     print("Running State 0")
 
@@ -237,6 +258,8 @@ def state0(state):
             cv.destroyWindow("Stream")
                 
         ### RETURN 'state' TO ARDUINO ###
+        
+        
 
 
 def state1():
