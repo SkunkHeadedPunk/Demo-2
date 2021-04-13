@@ -37,7 +37,7 @@ int motorSpeedL = 0;
 int motorSpeedR = 0;
 bool loganCSdone;
 float angleToSpin; // Angle to spin, in (degrees or rads)   
-float angleRead = 360;    // Angle taken from the Pi 
+float angleRead = 180;    // Angle taken from the Pi 
 float distanceToGo; // Needed distance, in feet ***SENT FROM PI, read is redundant
 float distanceRead = 0; // Distance from the cam to the marker, in feet
 float angularPositionL;
@@ -135,7 +135,7 @@ distancetogo = fixme;
         break;
         
     case 1:
-        if(angleRead != 360) {     
+        if(angleRead != 180) {     
           distanceToGo = distanceRead / (float) 12;  // 0.9 is distance from the beacon to cam after move
           angleToSpin = PI * (float) angleRead / (float) 180;
           //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
