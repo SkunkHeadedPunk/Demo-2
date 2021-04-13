@@ -316,6 +316,8 @@ if __name__ == '__main__':
             #### SENDS DISTANCE AND ANGLE TO ARDUINO ####
             dataToArduino[1] = angle_deg
             dataToArduino[2] = distance
+            writeBlock(dataToArduino)
+            
             
             # End after state 1
             break;
