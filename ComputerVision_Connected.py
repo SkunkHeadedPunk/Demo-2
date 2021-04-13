@@ -96,7 +96,7 @@ if DISP_STREAM == False:
 
 ## __________IMAGE SCALING__________ ##
 # Image scale for precise detection
-LARGE_SCALE = 0.2
+IMG_CAPTURE_SCALE = 1
 # Scale for resizing images for display
 DISP_SCALE = 0.5
 
@@ -266,7 +266,10 @@ def state0(state):
 def state1():
     print("Running State 1")
     camera = PiCamera()
-    camera.resolution = (WIDTH, HEIGHT)
+
+    width = int(WIDTH * IMG_CAPTURE_SCALE)
+    height = int(HEIGHT * IMG_CAPTURE_SCALE)
+    camera.resolution = (width, height)
 
     # Set up picamera array
     with picamera.array.PiRGBArray(camera) as stream:
