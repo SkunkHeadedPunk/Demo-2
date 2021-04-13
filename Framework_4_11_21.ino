@@ -14,6 +14,7 @@
 
 #include <Encoder.h>
 #include <DualMC33926MotorShield.h>
+#include <Wire.h>
 
 #define demo              1 // WHICH PART OF THE DEMO THE CODE IS FOR 
 #define diameter          0.5 // Diameter of the wheel, in ft (PRE-TAPE)
@@ -22,7 +23,8 @@
 #define motorLPWM         9 
 #define voltageRDir       7   // Direction for Left motor
 #define voltageLDir       8   // Direction for Right motor
-#define pinD2             4  
+#define pinD2             4 
+#define ADDRESS           0x04
 
 Encoder rightWheel(2,5);  // 2 is an interrupt pin (A/ Yellow Right)    ***DON'T USE PIN 1***
 Encoder leftWheel(3,6);   // 3 is an interrupt pin (A/ Yellow Left)   
@@ -47,9 +49,13 @@ float motorVoltageR;
 float motorVoltageL;
 long oldPositionL = -999; // Included in the basic encoder example code
 long oldPositionR = -999;
+byte dataFromPi[32];
 
 void setup() {
   circumference = (float) PI * diameter; // Calculates wheel circumference in ft
+  Wire.begin(ADDRESS);
+  Wire.onReceive(receiveData);
+  Wire.onRequest(sendData);
 }
 
 void loop() {
@@ -164,4 +170,21 @@ distancetogo = fixme;
   }
 
 
+}
+
+//Callback for receiving data from Pi
+void receiveData(int byteCount) {
+  int i = 0;
+  while (Wire.available()) {
+    dataFromPi[i] = Wire.read();
+    i++;
+  }
+  piState = dataFromPi[0];
+  angleRead = dataFromPi[1];
+  distanceRead = dataFromPi[2];
+}
+
+//Callback for sending data to Pi
+void sendData() {
+  Wire.write(state);
 }
