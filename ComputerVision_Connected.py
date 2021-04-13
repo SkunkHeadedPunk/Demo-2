@@ -66,12 +66,15 @@ import board
 bus = smbus.SMBus(1)
 i2c = busio.I2C(board.SCL, board.SDA)
 
+# INITIALIZATION OF ARRAY TO SEND TO ARDUINO
+dataToArduino = [0, 0, 0]
+
 # LCD INITIALIZATION
-lcd_columns = 16
-lcd_rows = 2
-lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
-lcd.clear()
-lcd.color = [100, 0, 100]
+#lcd_columns = 16
+#lcd_rows = 2
+#lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
+#lcd.clear()
+#lcd.color = [100, 0, 100]
 
 # FOR ZERO ANGLE CALIBRATION
 USE_CALIB_ANGLE = False
@@ -197,7 +200,6 @@ def writeBlock(block):
         #lcd.message = "Sent: " + userString + "\n"
     except:
         print("I2C Error")
-        lcd.message = "I2C Error"
     return -1
 
 
@@ -255,6 +257,8 @@ def state0(state):
             cv.destroyWindow("Stream")
                 
         ### RETURN 'state' TO ARDUINO ###
+        dataToArduino[0] = state
+        writeBlock(dataToArduino)
         
         
 
@@ -299,10 +303,16 @@ if __name__ == '__main__':
 
     while True:
         ### GET 'state' FROM ARDUINO ###
+        state = readNumber()
         if state == 0:
             state0(state)
                 
         if state == 1:
             distance, angle_deg, angle_rad = state1()
+            
+            #### SENDS DISTANCE AND ANGLE TO ARDUINO ####
+            dataToArduino[1] = angle_deg
+            dataToArduino[2] = distance
+            
             # End after state 1
             break;
