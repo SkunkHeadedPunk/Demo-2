@@ -67,7 +67,7 @@ bus = smbus.SMBus(1)
 i2c = busio.I2C(board.SCL, board.SDA)
 
 # INITIALIZATION OF ARRAY TO SEND TO ARDUINO
-dataToArduino = [0, 0, 0]
+dataToArduino = [0, 360, 0]
 
 # LCD INITIALIZATION
 #lcd_columns = 16
