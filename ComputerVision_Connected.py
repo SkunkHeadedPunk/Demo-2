@@ -157,7 +157,7 @@ def detect_marker(img):
 ##        lcd.clear()
 ##        lcd.message = "Marker not detected"
         # Return zeros
-        angle_deg = 360
+        angle_deg = 180
         angle_rad = angle_deg * math.pi / 180
         distance = 0
 
@@ -255,7 +255,10 @@ def state0(state):
             cv.imshow("Stream", disp_img)
             cv.waitKey(WAIT_KEY)
             cv.destroyWindow("Stream")
-                
+
+        distance = 0
+        angle_deg = 180
+        
         ### RETURN 'state' TO ARDUINO ###
         dataToArduino[0] = state
         writeBlock(dataToArduino)
