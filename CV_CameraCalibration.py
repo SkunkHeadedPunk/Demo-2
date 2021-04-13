@@ -60,14 +60,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import glob
+from picamera.array import PiRGBArray
 from picamera import PiCamera
 import picamera
 
 # SETTINGS FOR WHAT YOU'RE TRYING TO DO IN THIS FILE
 GENERATE_BOARD = False
 CAPTURE_CALIB_PHOTOS = False
-NUM_PHOTOS = 10
-CALIB_FROM_PHOTOS = False
+NUM_PHOTOS = 20
+CALIB_FROM_PHOTOS = True
+
+MAX_WIDTH, MAX_HEIGHT = 3280, 2464
+WIDTH, HEIGHT = 640, 480
+
+CAM_FOC_LEN = 3.04
+CAM_PIX_SPACING = 0.00112
 
 # Set directory for files
 workdir = "data/"
@@ -77,7 +84,8 @@ aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
 board = aruco.CharucoBoard_create(5, 7, 1.5, 1, aruco_dict)
 
 # Set up camera
-camera = PiCamera(resolution=(3264, 2464))
+##camera = PiCamera(resolution=(3264, 2464))
+camera = PiCamera(resolution=(WIDTH, HEIGHT))
 
 # Function to generate a ChArUco board to print out for calibration
 def generate_ChArUco_board():
@@ -142,10 +150,15 @@ def read_charuco():
 def calibrate_camera(allCorners, allIds, imsize):
     print("CAMERA CALIBRATION")
     # Create initial camera matrix
-    cameraMatrixInit = np.array([[ 2000.,    0., imsize[0]/2.],
-                                 [    0., 2000., imsize[1]/2.],
-                                 [    0.,    0.,           1.]])
-
+    est_f = CAM_FOC_LEN / CAM_PIX_SPACING
+    est_fx = est_f * WIDTH / MAX_WIDTH
+    est_fy = est_f * HEIGHT / MAX_HEIGHT
+    cameraMatrixInit = np.array([[ est_fx,     0., imsize[0]/2.],
+                                 [     0., est_fy, imsize[1]/2.],
+                                 [     0.,     0.,           1.]])
+##    cameraMatrixInit = np.array([[ 2000./5.1,    0., imsize[0]/2.],
+##                                 [    0., 2000.*15/77, imsize[1]/2.],
+##                                 [    0.,    0.,           1.]])
     distCoeffsInit = np.zeros((5, 1))
     flags = (cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_RATIONAL_MODEL)
     # Get camera calibration matrices and data
@@ -182,8 +195,10 @@ if __name__ == '__main__':
         print("ret: ", ret)
         print("camera_matrix: ", camera_matrix)
         print("distortion_coefficients0: ", distortion_coefficients0)
-        print("rotation_vectors: ", rotation_vectors)
-        print("translation_vectors: ", translation_vectors)
+##        print("rotation_vectors: ", rotation_vectors)
+##        print("translation_vectors: ", translation_vectors)
 
         # Save the camera calibration matrix and distortion coefficients to file
-        np.savez("cam_matrices_charuco.npz", k=camera_matrix, dist=distortion_coefficients0)
+        width = str(WIDTH)
+        height = str(HEIGHT)
+        np.savez("CV_CameraCalibrationMatrices_"+width+"x"+height+".npz", k=camera_matrix, dist=distortion_coefficients0)
