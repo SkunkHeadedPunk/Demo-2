@@ -254,6 +254,12 @@ def state0(state, img):
     # Optional display stream images
     if DISP_STREAM is True:
         # Draw the detected marker
+        if ids is None:
+            # Scale img for display
+            disp_img = disp_resize(img)
+            # Display img
+            cv.imshow("Stream", disp_img)
+            cv.waitKey(WAIT_KEY)
         if ids is not None:
             for tag in ids:
                 cv.aruco.drawDetectedMarkers(image=img,
@@ -261,12 +267,14 @@ def state0(state, img):
                                              ids=ids,
                                              borderColor=(0, 0, 255)
                                             )
-        # Scale img for display
-        disp_img = disp_resize(img)
-        # Display img
-        cv.imshow("Stream", disp_img)
-        cv.waitKey(WAIT_KEY)
-        cv.destroyWindow("Stream")
+                disp_img = disp_resize(img)
+                # Display img
+                cv.imshow("Stream Detected", disp_img)
+                cv.waitKey(1)
+#                disp_img = disp_resize(img)
+#                cv.imshow("stage0 Detected Capture", disp_img)
+#                cv.waitKey(0)
+
         
     return state
 
