@@ -234,14 +234,11 @@ def state0(state, img):
                                             )
     if ids is None:
         print("Beacon not detected")
-        capture_video = True
 
     if ids is not None:
         print("Beacon detected")
         state = 1
         vid.release()
-        capture_video = False
-            
             
     # Optional display stream images
     if DISP_STREAM is True:
@@ -262,49 +259,6 @@ def state0(state, img):
 
     distance = 0
     angle_deg = 180
-    
-##    vid = cv.VideoCapture(0)
-##
-##    while state == 0:
-##        ret, img = vid.read()
-##
-##        # Convert to grayscale for Aruco detection
-##        gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-##                
-##        # Detect if Aruco marker is present
-##        corners, ids, _ = cv.aruco.detectMarkers(image=img,
-##                                                 dictionary=arucoDict,
-##                                                 cameraMatrix=K,
-##                                                 distCoeff=DIST_COEFFS
-##                                                 )
-##        if ids is None:
-##            print("Beacon not detected")
-##
-##        if ids is not None:
-##            print("Beacon detected")
-##            state = 1
-##            vid.release()
-##            
-##            
-##        # Optional display stream images
-##        if DISP_STREAM is True:
-##            # Draw the detected marker
-##            if ids is not None:
-##                for tag in ids:
-##                    cv.aruco.drawDetectedMarkers(image=img,
-##                                                 corners=corners,
-##                                                 ids=ids,
-##                                                 borderColor=(0, 0, 255)
-##                                                 )
-##            # Scale img for display
-##            disp_img = disp_resize(img)
-##            # Display img
-##            cv.imshow("Stream", disp_img)
-##            cv.waitKey(WAIT_KEY)
-##            cv.destroyWindow("Stream")
-##
-##        distance = 0
-##        angle_deg = 180
         
         ### RETURN 'state' TO ARDUINO ###
     dataToArduino[0] = state
@@ -361,7 +315,7 @@ if __name__ == '__main__':
         if state == 0:
             cap = cv.VideoCapture(0)
             capture_video = True
-            while capture_video == True:
+            while state == 0:
                 # Get start time of state0 iteration
                 start_time = time()
 
