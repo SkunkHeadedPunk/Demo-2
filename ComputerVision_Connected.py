@@ -89,7 +89,7 @@ DISP_STREAM = True
 DISP_IMG = True
 
 # AMOUNT OF TIME TO DISPLAY STREAM IMAGES
-WAIT_KEY = 1000
+WAIT_KEY = 0
 # Set wait key to minimum for fastest stream when not displaying
 if DISP_STREAM == False:
     WAIT_KEY = 1
@@ -117,6 +117,16 @@ HEIGHT = 2464
 KD = np.load('CV_CameraCalibrationMatrices.npz')
 K = KD['k']
 DIST_COEFFS = KD['dist']
+
+def get_timing(start_time):
+    runtime = time() - start_time
+    fps = 1 / runtime
+    runtime = round(runtime, 3)
+    fps = round(fps, 3)
+    print("Runtime: ", runtime, "seconds")
+    print("FPS: ", fps)
+    print("\n")
+    return fps
 
 
 def disp_resize(img):
@@ -216,39 +226,36 @@ def readNumber():
 def state0(state):
     print("Running State 0")
 
-    vid = cv.VideoCapture(0)
-
-    while state == 0:
-        ret, img = vid.read()
-
-        # Convert to grayscale for Aruco detection
-        gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    # Convert to grayscale for Aruco detection
+    gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
                 
-        # Detect if Aruco marker is present
-        corners, ids, _ = cv.aruco.detectMarkers(image=img,
-                                                 dictionary=arucoDict,
-                                                 cameraMatrix=K,
-                                                 distCoeff=DIST_COEFFS
-                                                 )
-        if ids is None:
-            print("Beacon not detected")
+    # Detect if Aruco marker is present
+    corners, ids, _ = cv.aruco.detectMarkers(image=img,
+                                             dictionary=arucoDict,
+                                             cameraMatrix=K,
+                                             distCoeff=DIST_COEFFS
+                                            )
+    if ids is None:
+        print("Beacon not detected")
+        capture_video = True
 
+    if ids is not None:
+        print("Beacon detected")
+        state = 1
+        vid.release()
+        capture_video = False
+            
+            
+    # Optional display stream images
+    if DISP_STREAM is True:
+        # Draw the detected marker
         if ids is not None:
-            print("Beacon detected")
-            state = 1
-            vid.release()
-            
-            
-        # Optional display stream images
-        if DISP_STREAM is True:
-            # Draw the detected marker
-            if ids is not None:
-                for tag in ids:
-                    cv.aruco.drawDetectedMarkers(image=img,
-                                                 corners=corners,
-                                                 ids=ids,
-                                                 borderColor=(0, 0, 255)
-                                                 )
+            for tag in ids:
+                cv.aruco.drawDetectedMarkers(image=img,
+                                             corners=corners,
+                                             ids=ids,
+                                             borderColor=(0, 0, 255)
+                                            )
             # Scale img for display
             disp_img = disp_resize(img)
             # Display img
@@ -256,14 +263,14 @@ def state0(state):
             cv.waitKey(WAIT_KEY)
             cv.destroyWindow("Stream")
 
-        distance = 0
-        angle_deg = 180
+    distance = 0
+    angle_deg = 180
         
-        ### RETURN 'state' TO ARDUINO ###
-        dataToArduino[0] = state
-        writeBlock(dataToArduino)
+    ### RETURN 'state' TO ARDUINO ###
+    dataToArduino[0] = state
+    writeBlock(dataToArduino)
         
-        
+    return capture_video
 
 
 def state1():
@@ -311,8 +318,27 @@ if __name__ == '__main__':
         ### GET 'state' FROM ARDUINO ###
         state = readNumber()
         if state == 0:
-            state0(state)
-                
+            cap = cv.VideoCapture(0)
+            cap_video = True
+            while capture_video = True:
+                # Get start time of state0 iteration
+                start_time = time()
+
+                # Run state0 on captured frame
+                ret, frame = cap.read()
+                capture_video = state0(state, frame)
+
+                # Get FPS info
+                fps_arr.append(get_timing(start_time))
+
+            # Get average FPS
+            avg_fps_sum = 0
+            for val in fps_arr:
+                avg_fps_sum = avg_fps_sum + val
+
+            avg_fps = avg_fps_sum / len(fps_arr)
+            print("\nAverage FPS: ", avg_fps)
+            
         if state == 1:
             distance, angle_deg, angle_rad = state1()
             
@@ -324,3 +350,5 @@ if __name__ == '__main__':
             
             # End after state 1
             break;
+
+
