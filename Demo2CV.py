@@ -264,7 +264,7 @@ def state0(state, img):
     dataToArduino[0] = state
     writeBlock(dataToArduino)
         
-    return capture_video
+    return state
 
 
 def state1():
@@ -314,14 +314,14 @@ if __name__ == '__main__':
         state = readNumber()
         if state == 0:
             cap = cv.VideoCapture(0)
-            capture_video = True
+
             while state == 0:
                 # Get start time of state0 iteration
                 start_time = time()
 
                 # Run state0 on captured frame
                 ret, frame = cap.read()
-                capture_video = state0(state, frame)
+                state = state0(state, frame)
 
                 # Get FPS info
                 fps_arr.append(get_timing(start_time))
