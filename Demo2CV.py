@@ -81,7 +81,7 @@ DISP_STREAM = True
 DISP_IMG = True
 
 # AMOUNT OF TIME TO DISPLAY STREAM IMAGES
-WAIT_KEY = 0
+WAIT_KEY = 100
 # Set wait key to minimum for fastest stream when not displaying
 if DISP_STREAM == False:
     WAIT_KEY = 1
@@ -93,7 +93,7 @@ IMG_CAPTURE_SCALE = 1
 DISP_SCALE = 0.5
 
 # Get the Aruco dictionary
-arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_100)
+arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_100)
 
 # Measured Aruco marker length in inches
 MARKER_LENGTH_IN = 3.8125
@@ -193,8 +193,8 @@ def get_vals(corners):
     print("angle: ", round(angle_deg, 2), "degrees;     ",
           round(angle_rad, 2), "radians")
     
-    dataToArduino[1] = int(angle_deg)
-    dataToArduino[2] = int(distance)
+    dataToArduino[1] = int(round(angle_deg))
+    dataToArduino[2] = int(round(distance))
     writeBlock(dataToArduino)
     
     return distance, angle_rad, angle_deg
@@ -202,11 +202,23 @@ def get_vals(corners):
 
 ####### FUNCTION FOR WRITING ARRAY TO ARDUINO #######
 def writeBlock(block):
+    try:
         bus.write_i2c_block_data(address, 1, block)
         #lcd.message = "Sent: " + userString + "\
+    except:
+        print("%%%%%%%%%%I2C Error%%%%%%%%%%%")
+        print("%%%%%%%%%%I2C Error%%%%%%%%%%%")
+        print("%%%%%%%%%%I2C Error%%%%%%%%%%%")
+        print("%%%%%%%%%%I2C Error%%%%%%%%%%%")
+        print("%%%%%%%%%%I2C Error%%%%%%%%%%%")
+        print("%%%%%%%%%%I2C Error%%%%%%%%%%%")
+        print("%%%%%%%%%%I2C Error%%%%%%%%%%%")
 
 def writeNumber(num):
-    bus.write_byte_data(address, 0, num)
+    try:
+        bus.write_byte_data(address, 0, num)
+    except:
+        print("I2C Error")
     return -1
 
 
@@ -238,7 +250,6 @@ def state0(state, img):
     if ids is not None:
         print("Beacon detected")
         state = 1
-        vid.release()
             
     # Optional display stream images
     if DISP_STREAM is True:
@@ -250,19 +261,12 @@ def state0(state, img):
                                              ids=ids,
                                              borderColor=(0, 0, 255)
                                             )
-            # Scale img for display
-            disp_img = disp_resize(img)
-            # Display img
-            cv.imshow("Stream", disp_img)
-            cv.waitKey(WAIT_KEY)
-            cv.destroyWindow("Stream")
-
-    distance = 0
-    angle_deg = 180
-        
-        ### RETURN 'state' TO ARDUINO ###
-    dataToArduino[0] = state
-    writeBlock(dataToArduino)
+        # Scale img for display
+        disp_img = disp_resize(img)
+        # Display img
+        cv.imshow("Stream", disp_img)
+        cv.waitKey(WAIT_KEY)
+        cv.destroyWindow("Stream")
         
     return state
 
@@ -314,6 +318,9 @@ if __name__ == '__main__':
         state = readNumber()
         if state == 0:
             cap = cv.VideoCapture(0)
+            
+            distance = 0
+            angle_deg = 180
 
             while state == 0:
                 # Get start time of state0 iteration
@@ -323,8 +330,14 @@ if __name__ == '__main__':
                 ret, frame = cap.read()
                 state = state0(state, frame)
 
+                ### RETURN 'state' TO ARDUINO ###
+                dataToArduino[0] = state
+                writeBlock(dataToArduino)
+
                 # Get FPS info
                 fps_arr.append(get_timing(start_time))
+
+            cap.release()
 
             # Get average FPS
             avg_fps_sum = 0
