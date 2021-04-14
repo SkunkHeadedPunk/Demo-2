@@ -220,7 +220,7 @@ def readNumber():
         return 0
 
 
-def state0(state):
+def state0(state, img):
     print("Running State 0")
 
     # Convert to grayscale for Aruco detection
@@ -307,9 +307,10 @@ def state0(state):
 ##        angle_deg = 180
         
         ### RETURN 'state' TO ARDUINO ###
-        dataToArduino[0] = state
-        writeBlock(dataToArduino)
+    dataToArduino[0] = state
+    writeBlock(dataToArduino)
         
+    return capture_video
 
 
 def state1():
@@ -352,14 +353,15 @@ if __name__ == '__main__':
     # Initialize state
     state = 0
     start = time()
+    fps_arr = []
 
     while True:
         ### GET 'state' FROM ARDUINO ###
         state = readNumber()
         if state == 0:
             cap = cv.VideoCapture(0)
-            cap_video = True
-            while capture_video = True:
+            capture_video = True
+            while capture_video == True:
                 # Get start time of state0 iteration
                 start_time = time()
 
