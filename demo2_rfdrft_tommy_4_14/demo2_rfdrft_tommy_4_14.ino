@@ -178,7 +178,7 @@ distancetogo = fixme;
     case 1: 
         //Serial.println(angleRead); 
         //Serial.println(distanceRead);  
-        if(angleRead != 180){  
+        if(angleRead != 149){  
           Serial.println("MADE IT! AngleRead: ");
           Serial.println(angleRead); 
           Serial.println(distanceRead);
@@ -256,17 +256,21 @@ distancetogo = fixme;
           motorSpeedR = (speedR*uR* (float) -1);
           break; 
           
-   case 3:
+   case 3: 
+          Serial.println("Case 3");
           motorSpeedL = 0;
           motorSpeedR = 0;   
-          if(distanceRead == 0){ ////////////////////////////////////////// fix me fixme ^((^^(^69696969696969696696966996696969696969696969696969696969696need to know when pi has correct disatnc
-            //distanceToGo = distanceRead / (float) 12;
+          if(distanceRead != 0){ ////////////////////////////////////////// fix me fixme ^((^^(^69696969696969696696966996696969696969696969696969696969696need to know when pi has correct disatnc
+            distanceToGo = ( distanceRead / (float) 12 ) - (float) 0.8; // Uncommented this line
             goalDistanceAngle = (float) 1*distanceToGo* (float) 2/ (float) diametermod;
             state = 4;
           }
           break;
 
-   case 4:
+   case 4: 
+          Serial.println("Case 4"); 
+          Serial.println("Goal Distance Angle: ");
+          Serial.println(goalDistanceAngle);
           //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           // START START START CONTROL SYSTEM FOR DRIVING TO distanceToGo 
           //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 

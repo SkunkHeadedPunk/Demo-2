@@ -339,8 +339,9 @@ if __name__ == '__main__':
                 state = state0(state, frame)
 
                 ### RETURN 'state' TO ARDUINO ###
-                dataToArduino[0] = state
-                writeBlock(dataToArduino)
+                if state == 1:
+                    dataToArduino[0] = state
+                    writeBlock(dataToArduino)
 
                 # Get FPS info
                 fps_arr.append(get_timing(start_time))
