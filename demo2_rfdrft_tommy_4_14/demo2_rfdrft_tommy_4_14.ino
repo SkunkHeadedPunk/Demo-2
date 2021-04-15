@@ -261,7 +261,7 @@ distancetogo = fixme;
           motorSpeedL = 0;
           motorSpeedR = 0;   
           if(distanceRead != 0){ ////////////////////////////////////////// fix me fixme ^((^^(^69696969696969696696966996696969696969696969696969696969696need to know when pi has correct disatnc
-            distanceToGo = ( distanceRead / (float) 12 ) - (float) 12; // Uncommented this line
+            distanceToGo = ( distanceRead / (float) 12 ) - (float) 0.8; // Uncommented this line
             goalDistanceAngle = (float) 1*distanceToGo* (float) 2/ (float) diametermod;
             state = 4;
           }
