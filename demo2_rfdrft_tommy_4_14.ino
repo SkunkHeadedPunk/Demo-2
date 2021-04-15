@@ -364,7 +364,7 @@ void receiveData(int byteCount) {
     i++;
   }
   piState = dataFromPi[1];
-  angleRead = dataFromPi[2];
+  angleRead = dataFromPi[2] - 31;
   distanceRead = dataFromPi[3]; 
   Serial.println(piState);
   Serial.println(angleRead);
