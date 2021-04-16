@@ -63,11 +63,12 @@ import glob
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 import picamera
+import time
 
 # SETTINGS FOR WHAT YOU'RE TRYING TO DO IN THIS FILE
 GENERATE_BOARD = False
 CAPTURE_CALIB_PHOTOS = False
-NUM_PHOTOS = 20
+NUM_PHOTOS = 1000
 CALIB_FROM_PHOTOS = True
 
 MAX_WIDTH, MAX_HEIGHT = 3280, 2464
@@ -83,9 +84,10 @@ workdir = "data/"
 aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
 board = aruco.CharucoBoard_create(5, 7, 1.5, 1, aruco_dict)
 
-# Set up camera
-##camera = PiCamera(resolution=(3264, 2464))
-camera = PiCamera(resolution=(WIDTH, HEIGHT))
+### Set up camera
+####camera = PiCamera(resolution=(3264, 2464))
+##camera = PiCamera(resolution=(WIDTH, HEIGHT))
+
 
 # Function to generate a ChArUco board to print out for calibration
 def generate_ChArUco_board():
@@ -97,24 +99,75 @@ def generate_ChArUco_board():
     ax.axis("off")
     plt.show()
 
+
 # Function to capture a number of photos of the ChArUco board
 # Take photos of the board in varying positions and angles
-def capture_photos():
-    with picamera.array.PiRGBArray(camera) as stream:
-        for i in range(NUM_PHOTOS):
-            num = str(i)
-            camera.capture(stream, format="bgr")
-            img = stream.array
-            scale = 0.5
-            disp_img = cv.resize(img, (int(img.shape[1] * scale),
-                                       int(img.shape[0] * scale)
-                                       ))
-            cv.imshow("img"+num, disp_img)
-            cv.imwrite("CalibrationImg"+num+".png", img)
-            cv.waitKey(0)
-            cv.destroyWindow("img"+num)
-            stream.truncate(0)
+#### PHOTO CAPTURE METHOD
+##def capture_photos():
+##    with picamera.array.PiRGBArray(camera) as stream:
+##        for i in range(NUM_PHOTOS):
+##            num = str(i)
+##            camera.capture(stream, format="bgr")
+##            img = stream.array
+##            scale = 0.5
+##            disp_img = cv.resize(img, (int(img.shape[1] * scale),
+##                                       int(img.shape[0] * scale)
+##                                       ))
+##            cv.imshow("img"+num, disp_img)
+##            cv.imwrite("CalibrationImg"+num+".png", img)
+##            cv.waitKey(0)
+##            cv.destroyWindow("img"+num)
+##            stream.truncate(0)
 
+#### First video capture method
+##def capture_photos():
+##    vid = cv.VideoCapture(0)
+##
+##    for i in range (NUM_PHOTOS):
+##        num = str(i)
+##        
+##        ret, frame = vid.read()
+##
+##        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+##
+####        disp_img = cv.resize(frame, (int(frame.shape[1] * scale),
+####                                     int(frame.shape[0] * scale)
+####                                     ))
+##        cv.imshow("frame", gray)
+##        cv.imwrite("CalibrationFrame"+num+".png", frame)
+##        cv.waitKey(1)
+##
+##    vid.release()
+##    cv.destroyAllWindows()
+
+# Second video capture method
+def capture_photos():
+    camera = PiCamera()
+    camera.resolution = (WIDTH, HEIGHT)
+    rawCapture = PiRGBArray(camera, size=(WIDTH, HEIGHT))
+
+    time.sleep(0.1)
+##    for i in range (NUM_PHOTOS):
+##        num = str(i)
+    i = 0
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        num = str(i)
+        if i == NUM_PHOTOS:
+            break
+        
+        image = frame.array
+
+        cv.imshow("Frame", image)
+        cv.imwrite("CalibrationFrame_M2"+num+".png", image)
+        key = cv.waitKey(1) & 0xFF
+
+        rawCapture.truncate(0)
+
+        if key == ord("q"):
+            break
+
+        i = i + 1
+            
 # Get Aruco corners, ids, and image shape
 def read_charuco():
     images = glob.glob('*.png')
@@ -123,28 +176,33 @@ def read_charuco():
     decimator = 0
     # Sub pixel corner detection criterion
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 100, 0.0001)
-
+    j = 0
     for im in images:
-        print("=> Processing image {0}".format(im))
-        frame = cv.imread(im)
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        corners, ids, rejectedImgPoints = cv.aruco.detectMarkers(gray, aruco_dict)
+        use_photo = (j % 3)
+        print("use_photo: ", use_photo)
+        if use_photo == 0:
+            print("=> Processing image {0}".format(im))
+            frame = cv.imread(im)
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            corners, ids, rejectedImgPoints = cv.aruco.detectMarkers(gray, aruco_dict)
 
-        if len(corners) > 0:
-            # Sub pixel detection for improving accuracy
-            for corner in corners:
-                cv.cornerSubPix(gray, corner,
-                                winSize = (20, 20),
-                                zeroZone = (-1, -1),
-                                criteria = criteria)
-            res2 = cv.aruco.interpolateCornersCharuco(corners, ids, gray, board)
-            if res2[1] is not None and res2[2] is not None and len(res2[1]) > 3 and decimator%1==0:
-                allCorners.append(res2[1])
-                allIds.append(res2[2])
+            if len(corners) > 0:
+                # Sub pixel detection for improving accuracy
+                for corner in corners:
+                    cv.cornerSubPix(gray, corner,
+                                    winSize = (20, 20),
+                                    zeroZone = (-1, -1),
+                                    criteria = criteria)
+                res2 = cv.aruco.interpolateCornersCharuco(corners, ids, gray, board)
+                if res2[1] is not None and res2[2] is not None and len(res2[1]) > 3 and decimator%1==0:
+                    allCorners.append(res2[1])
+                    allIds.append(res2[2])
 
-        decimator += 1
+            decimator += 1
+        j = j + 1
     imsize = gray.shape
     return allCorners, allIds, imsize
+
 
 # Generate camera calibration matrices from detected data
 def calibrate_camera(allCorners, allIds, imsize):
@@ -156,9 +214,11 @@ def calibrate_camera(allCorners, allIds, imsize):
     cameraMatrixInit = np.array([[ est_fx,     0., imsize[0]/2.],
                                  [     0., est_fy, imsize[1]/2.],
                                  [     0.,     0.,           1.]])
+    
 ##    cameraMatrixInit = np.array([[ 2000./5.1,    0., imsize[0]/2.],
 ##                                 [    0., 2000.*15/77, imsize[1]/2.],
 ##                                 [    0.,    0.,           1.]])
+    
     distCoeffsInit = np.zeros((5, 1))
     flags = (cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_RATIONAL_MODEL)
     # Get camera calibration matrices and data
@@ -174,7 +234,7 @@ def calibrate_camera(allCorners, allIds, imsize):
          distCoeffs=distCoeffsInit,
          flags=flags,
          criteria=(cv.TERM_CRITERIA_EPS & cv.TERM_CRITERIA_COUNT, 10000, 1e-9))
-
+    print("CAMERA CALIBRATION COMPLETED")
     return ret, camera_matrix, distortion_coefficients0, rotation_vectors, translation_vectors
 
 
@@ -201,4 +261,6 @@ if __name__ == '__main__':
         # Save the camera calibration matrix and distortion coefficients to file
         width = str(WIDTH)
         height = str(HEIGHT)
+        print("SAVING CALIBRATION MATRICES")
         np.savez("CV_CameraCalibrationMatrices_"+width+"x"+height+".npz", k=camera_matrix, dist=distortion_coefficients0)
+        print("CALIBRATION MATRICES SAVED")

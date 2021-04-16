@@ -83,10 +83,10 @@ if DISP_STREAM == False:
 # Image scale for precise detection
 IMG_CAPTURE_SCALE = 1
 # Scale for resizing images for display
-DISP_SCALE = 0.5
+DISP_SCALE = 1
 
 # Get the Aruco dictionary
-arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_7X7_100)
+arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_100)
 
 # Measured Aruco marker length in inches
 MARKER_LENGTH_IN = 3.8125
@@ -99,7 +99,7 @@ width, height = str(WIDTH), str(HEIGHT)
 
 # Load camera properties matrices from file
 # This file is generated from the camera calibration
-KD = np.load('CV_CameraCalibrationMatrices_'+width+'x'+height+'.npz')
+KD = np.load('CV_CameraCalibrationMatrices_'+width+'x'+height+'_100samples.npz')
 K = KD['k']
 DIST_COEFFS = KD['dist']
 
@@ -268,7 +268,7 @@ def state1():
 
     width = int(WIDTH * IMG_CAPTURE_SCALE)
     height = int(HEIGHT * IMG_CAPTURE_SCALE)
-    camera.resolution = (width, height)
+    camera.resolution = (WIDTH, HEIGHT)
 
     # Set up picamera array
     with picamera.array.PiRGBArray(camera) as stream:
