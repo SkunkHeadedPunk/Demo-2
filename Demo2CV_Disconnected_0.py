@@ -90,19 +90,27 @@ arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_7X7_100)
 
 # Measured Aruco marker length in inches
 MARKER_LENGTH_IN = 3.8125
+MARKER_LENGTH_MM = 97 / 25.4 #3.8189
+
+FACTOR = 1
+factor = str(FACTOR)
 
 # Image capture dimensions
 # Max res: 3280 x 2464
 # MAX WORKING DIMENSIONS
+MAX_WIDTH, MAX_HEIGHT = 3264, 2464
 WIDTH, HEIGHT = 640, 480
 width, height = str(WIDTH), str(HEIGHT)
 
 # Load camera properties matrices from file
 # This file is generated from the camera calibration
-KD = np.load('CV_CameraCalibrationMatrices_'+width+'x'+height+'_100samples.npz')
+KD = np.load('CV_ChessboardCalibrationMatrices_scale'+factor+'.npz')
 K = KD['k']
 DIST_COEFFS = KD['dist']
+##DIST_COEFFS = np.zeros((5, 1))
 
+##K[0][0] = K[0][0] * WIDTH / MAX_WIDTH
+##K[1][1] = K[1][1] * HEIGHT / MAX_HEIGHT
 
 def get_timing(start_time):
     runtime = time() - start_time
@@ -123,28 +131,57 @@ def disp_resize(img):
     return disp_img
 
 
-def detect_marker(img):
+def detect_marker(img, mtx, dst):
     # Detect Aruco markers, corners, and IDs
-    corners, ids, _ = cv.aruco.detectMarkers(image=img,
+##    img = cv.undistort(src=img, cameraMatrix=mtx, distCoeffs=dst)
+##    parameters = cv.aruco.DetectorParameters_create()
+##    corners, ids, rejectedImgPoints = cv.aruco.detectMarkers(img,
+##                                                          arucoDict,
+##                                                          parameters=parameters)
+    h, w = img.shape[:2]
+    print("h, w: ", h, " ", w)
+    newCamMtx, roi = cv.getOptimalNewCameraMatrix(K, DIST_COEFFS, (w,h), 1, (w,h))
+    corr_img = cv.undistort(img, K, DIST_COEFFS, None, newCamMtx)
+    
+    corners, ids, _ = cv.aruco.detectMarkers(image=corr_img,
                                              dictionary=arucoDict,
                                              cameraMatrix=K,
                                              distCoeff=DIST_COEFFS
-                                             )                                   
-    # Convert image to color
-    img = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
-
-    # If an Aruco marker is detected
+                                            )
     if ids is not None:
-        print("Marker detected")
+        
+        criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 100, 0.0001)
+        for corner in corners:
+            cv.cornerSubPix(corr_img, corner, winSize=(3,3),
+                            zeroZone=(-1,-1), criteria=criteria)
+        color_img = cv.cvtColor(corr_img, cv.COLOR_GRAY2BGR)
+        framed_markers = cv.aruco.drawDetectedMarkers(color_img, corners, ids)
+        distance, angle_rad, angle_deg = get_vals(corners, newCamMtx)
 
-        for tag in ids:
-            cv.aruco.drawDetectedMarkers(image=img,
-                                         corners=corners,
-                                         ids=ids,
-                                         borderColor=(0, 0, 255)
-                                         )
-                    
-        distance, angle_rad, angle_deg = get_vals(corners)
+
+
+
+    
+##    corners, ids, _ = cv.aruco.detectMarkers(image=img,
+##                                             dictionary=arucoDict,
+##                                             cameraMatrix=K,
+##                                             distCoeff=DIST_COEFFS
+##                                             )                                   
+##    # Convert image to color
+##    img = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+##
+##    # If an Aruco marker is detected
+##    if ids is not None:
+##        print("Marker detected")
+##
+##        for tag in ids:
+##            cv.aruco.drawDetectedMarkers(image=img,
+##                                         corners=corners,
+##                                         ids=ids,
+##                                         borderColor=(0, 0, 255)
+##                                         )
+##                    
+##        distance, angle_rad, angle_deg = get_vals(corners)
 
     # If an Aruco marker is not detected
     if ids is None:
@@ -154,17 +191,18 @@ def detect_marker(img):
         angle_deg = 180
         angle_rad = angle_deg * math.pi / 180
         distance = 0
+        framed_markers = img
 
-    return distance, angle_deg, angle_rad, img
+    return distance, angle_deg, angle_rad, framed_markers
 
 
-def get_vals(corners):
+def get_vals(corners, newCamMtx):
     # Get rotation and translation vectors for Aruco marker
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(
         corners,
         markerLength = MARKER_LENGTH_IN,
-        cameraMatrix = K,
-        distCoeffs = DIST_COEFFS
+        cameraMatrix = newCamMtx,
+        distCoeffs = 0
         )
 
     # Unpack translation vector
@@ -275,7 +313,7 @@ def state1():
         gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
                 
         # Detect Aruco marker, and get detected angle and distance
-        distance, angle_deg, angle_rad, img = detect_marker(gray_img)
+        distance, angle_deg, angle_rad, img = detect_marker(gray_img, K, DIST_COEFFS)
 
         # Optional display stream images
         if DISP_IMG is True:
@@ -300,8 +338,6 @@ if __name__ == '__main__':
 
     camera = PiCamera()
     camera.resolution = (WIDTH, HEIGHT)
-
-    
 
     while True:
 ##        ### GET 'state' FROM ARDUINO ###
