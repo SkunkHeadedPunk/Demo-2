@@ -145,17 +145,17 @@ def detect_marker(img, mtx, dst):
     
     corners, ids, _ = cv.aruco.detectMarkers(image=corr_img,
                                              dictionary=arucoDict,
-                                             cameraMatrix=K,
-                                             distCoeff=DIST_COEFFS
+                                             cameraMatrix=newCamMtx,
+                                             distCoeff=0
                                             )
     if ids is not None:
-        
+        corr_img = cv.cvtColor(corr_img, cv.COLOR_BGR2GRAY)
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 100, 0.0001)
         for corner in corners:
             cv.cornerSubPix(corr_img, corner, winSize=(3,3),
                             zeroZone=(-1,-1), criteria=criteria)
         color_img = cv.cvtColor(corr_img, cv.COLOR_GRAY2BGR)
-        framed_markers = cv.aruco.drawDetectedMarkers(color_img, corners, ids)
+        framed_markers = cv.aruco.drawDetectedMarkers(img, corners, ids)
         distance, angle_rad, angle_deg = get_vals(corners, newCamMtx)
 
 
@@ -260,8 +260,8 @@ def get_vals(corners, newCamMtx):
 def state0(state, img):
     print("Running State 0")
 
-    # Convert to grayscale for Aruco detection
-    gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+##    # Convert to grayscale for Aruco detection
+##    gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
                 
     # Detect if Aruco marker is present
     corners, ids, _ = cv.aruco.detectMarkers(image=img,
@@ -296,6 +296,10 @@ def state0(state, img):
                 # Display img
                 cv.imshow("Stream Detected", disp_img)
                 cv.waitKey(1)
+            try:
+                cv.destroyWindow("Stream - undetected")
+            except:
+                print("")
         
     return state
 
@@ -313,7 +317,7 @@ def state1():
         gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
                 
         # Detect Aruco marker, and get detected angle and distance
-        distance, angle_deg, angle_rad, img = detect_marker(gray_img, K, DIST_COEFFS)
+        distance, angle_deg, angle_rad, img = detect_marker(img, K, DIST_COEFFS)
 
         # Optional display stream images
         if DISP_IMG is True:
