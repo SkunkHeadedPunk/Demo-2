@@ -76,9 +76,13 @@ CALIB_ANGLE = - CALIB_ANGLE_FILE['zero_angle']
 
 
 # TO DISPLAY STREAM IMAGES
-DISP_STREAM = True
+DISP_STREAM_UNDETECTED = True
+STREAM_UNDETECTED_WAITKEY = 1
+DISP_STREAM_DETECTED = True
+STREAM_DETECTED_WAITKEY = 1
 # TO DISPLAY PRECISE IMAGE
-DISP_IMG = True
+DISP_PRECISE_IMG = True
+PRECISE_IMG_WAITKEY = 1
 
 # AMOUNT OF TIME TO DISPLAY STREAM IMAGES
 WAIT_KEY = 1
@@ -111,6 +115,11 @@ factor = str(FACTOR)
 KD = np.load('CV_ChessboardCalibrationMatrices_scale'+factor+'.npz')
 K = KD['k']
 DIST_COEFFS = KD['dist']
+
+# Physical distances relative to robot
+DIST_FRONT_AXLE = 0
+DIST_CENTER_ROTATION = 8
+DIST_FROM_MARKER = 8
 
 
 # Gets runtime / FPS data
@@ -267,24 +276,20 @@ def state0(state, img):
     # If marker not detected...
     if ids is None:
         print("Beacon not detected")
+        
+        # Optional stream display
+        if DISP_STREAM_UNDETECTED is True:
+            cv.imshow("Stream - undetected", img)
+            cv.waitKey(UNDETECTED_STREAM_WAITKEY)
 
     # If marker detected...
     if ids is not None:
         print("Beacon detected")
         # Change to next state
         state = 1
-            
-    # Optional display stream images
-    if DISP_STREAM is True:
-        
-        # If marker not detected...
-        if ids is None:
-            # Display current image
-            cv.imshow("Stream - undetected", img)
-            cv.waitKey(WAIT_KEY)
 
-        # If marker detected...
-        if ids is not None:
+        # Optional stream detected display
+        if DISP_STREAM_DETECTED is True:
             for tag in ids:
                 cv.aruco.drawDetectedMarkers(image=img,
                                              corners=corners,
@@ -293,7 +298,12 @@ def state0(state, img):
                                             )
                 # Display image from time of initial state0 detection
                 cv.imshow("Stream - DETECTED", img)
-                cv.waitKey(1)
+                cv.waitKey(DETECTED_STREAM_WAITKEY)
+                
+            try:
+                cv.destroyWindow("Stream - undetected")
+            except:
+                print("")
 
     return state
 
@@ -314,11 +324,10 @@ def state1():
         distance, angle_deg, angle_rad, img = detect_marker(img)
 
         # Optional display stream images
-        if DISP_IMG is True:
+        if DISP_PRECISE_IMG is True:
             # Display image
             cv.imshow("Precise Img", img)
-            cv.waitKey(0)
-            cv.destroyWindow("Precise Img")
+            cv.waitKey(PRECISE_IMG_WAITKEY)
                 
         # Truncate the stream to clear for next image capture
         stream.truncate(0)
@@ -391,7 +400,10 @@ if __name__ == '__main__':
             dataToArduino[2] = int(round(distance))
             writeBlock(dataToArduino)       
             
-            
             # End after state 1
             break;
+
+        # Final state
+        if state == 5: # FINALSTATE?
+            cv.destroyAllWindows()
 
