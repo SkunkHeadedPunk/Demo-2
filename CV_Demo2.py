@@ -207,7 +207,7 @@ def get_vals(corners, newCamMtx):
     t_vec = tvecs[0][0]
 
     # Calculate distance using the root of the sum of the squares
-    distance = math.sqrt(t_vec[0] ** 2 + t_vec[2] ** 2)
+    dist_camera = math.sqrt(t_vec[0] ** 2 + t_vec[2] ** 2)
     print("distance: ", round(distance, 2), "inches")
 
     # Calculate angle using trigonometry with distance values
@@ -219,12 +219,31 @@ def get_vals(corners, newCamMtx):
     print("angle: ", round(angle_deg, 2), "degrees;     ",
           round(angle_rad, 2), "radians")
 
+    # Calculate distance and angle from center of rotation of robot
+    if USE_CALIB_ANGLE is True:
+        Adj = DIST_CENTER_ROTATION * np.cos(CALIB_ANGLE)
+        Opp = - DIST_CENTER_ROTATION * np.sin(CALIB_ANGLE)
+        X = t_vec[0] + Opp
+        Z = t_vec[2] + Adj
+        dist_center_rot = math.sqrt(X ** 2 + Z ** 2)
+        angle_center_rot_rad = np.arctan(X / Z)
+    angle_center_rot_deg = angle_center_rot_rad * 180 / math.pi
+    print("\n")
+    print("angle to turn: ", round(angle_center_rot_deg, 2), "degrees")
+    print("distance from center rotation: ", round(dist_center_rot, 2), "inches")
+
+    # Calculate distance to travel
+    dist_2_travel = dist_center_rot - DIST_FROM_MARKER - DIST_FRONT_AXLE
+    print("distance to travel: ", round(dist_2_travel, 2), "inches")
+
+
+
 ##    # Send angle and distance to Arduino
 ##    dataToArduino[1] = int(round(angle_deg))
 ##    dataToArduino[2] = int(round(distance))
 ##    writeBlock(dataToArduino)
     
-    return distance, angle_rad, angle_deg
+    return dist_2_travel, angle_center_rot_rad, angle_center_rot_deg
 
 
 ####### FUNCTION FOR WRITING ARRAY TO ARDUINO #######
