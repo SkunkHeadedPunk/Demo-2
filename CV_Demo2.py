@@ -82,13 +82,13 @@ DISP_STREAM_DETECTED = True
 STREAM_DETECTED_WAITKEY = 1
 # TO DISPLAY PRECISE IMAGE
 DISP_PRECISE_IMG = True
-PRECISE_IMG_WAITKEY = 1
+PRECISE_IMG_WAITKEY = 5
 
 # AMOUNT OF TIME TO DISPLAY STREAM IMAGES
 WAIT_KEY = 1
 # Set wait key to minimum for fastest stream when not displaying
-if DISP_STREAM == False:
-    WAIT_KEY = 1
+##if DISP_STREAM == False:
+##    WAIT_KEY = 1
 
 ## __________IMAGE SCALING__________ ##
 # Image scale for precise detection
@@ -128,7 +128,7 @@ def get_timing(start_time):
     fps = 1 / runtime
     runtime = round(runtime, 3)
     fps = round(fps, 3)
-    print("Runtime: ", runtime, "seconds")
+##    print("Runtime: ", runtime, "seconds")
     print("FPS: ", fps)
     print("\n")
     return fps
@@ -207,7 +207,7 @@ def get_vals(corners, newCamMtx):
     t_vec = tvecs[0][0]
 
     # Calculate distance using the root of the sum of the squares
-    dist_camera = math.sqrt(t_vec[0] ** 2 + t_vec[2] ** 2)
+    distance = math.sqrt(t_vec[0] ** 2 + t_vec[2] ** 2)
     print("distance: ", round(distance, 2), "inches")
 
     # Calculate angle using trigonometry with distance values
@@ -219,31 +219,12 @@ def get_vals(corners, newCamMtx):
     print("angle: ", round(angle_deg, 2), "degrees;     ",
           round(angle_rad, 2), "radians")
 
-    # Calculate distance and angle from center of rotation of robot
-    if USE_CALIB_ANGLE is True:
-        Adj = DIST_CENTER_ROTATION * np.cos(CALIB_ANGLE)
-        Opp = - DIST_CENTER_ROTATION * np.sin(CALIB_ANGLE)
-        X = t_vec[0] + Opp
-        Z = t_vec[2] + Adj
-        dist_center_rot = math.sqrt(X ** 2 + Z ** 2)
-        angle_center_rot_rad = np.arctan(X / Z)
-    angle_center_rot_deg = angle_center_rot_rad * 180 / math.pi
-    print("\n")
-    print("angle to turn: ", round(angle_center_rot_deg, 2), "degrees")
-    print("distance from center rotation: ", round(dist_center_rot, 2), "inches")
-
-    # Calculate distance to travel
-    dist_2_travel = dist_center_rot - DIST_FROM_MARKER - DIST_FRONT_AXLE
-    print("distance to travel: ", round(dist_2_travel, 2), "inches")
-
-
-
 ##    # Send angle and distance to Arduino
 ##    dataToArduino[1] = int(round(angle_deg))
 ##    dataToArduino[2] = int(round(distance))
 ##    writeBlock(dataToArduino)
     
-    return dist_2_travel, angle_center_rot_rad, angle_center_rot_deg
+    return distance, angle_rad, angle_deg
 
 
 ####### FUNCTION FOR WRITING ARRAY TO ARDUINO #######
@@ -299,11 +280,11 @@ def state0(state, img):
         # Optional stream display
         if DISP_STREAM_UNDETECTED is True:
             cv.imshow("Stream - undetected", img)
-            cv.waitKey(UNDETECTED_STREAM_WAITKEY)
+            cv.waitKey(STREAM_UNDETECTED_WAITKEY)
 
     # If marker detected...
     if ids is not None:
-        print("Beacon detected")
+        print("----------BEACON DETECTED----------")
         # Change to next state
         state = 1
 
@@ -317,7 +298,7 @@ def state0(state, img):
                                             )
                 # Display image from time of initial state0 detection
                 cv.imshow("Stream - DETECTED", img)
-                cv.waitKey(DETECTED_STREAM_WAITKEY)
+                cv.waitKey(STREAM_DETECTED_WAITKEY)
                 
             try:
                 cv.destroyWindow("Stream - undetected")
@@ -372,7 +353,8 @@ if __name__ == '__main__':
         # State0: Rotate robot and search continuously for marker
         if state == 0:
             # Set up capture array for PiCamera
-            rawCapture = PiRGBArray(camera, size(WIDTH, HEIGHT))
+            camera.exposure_mode = 'sports'
+            rawCapture = PiRGBArray(camera, size=(WIDTH, HEIGHT))
 
             # Default distance and angle
             distance = 0
@@ -395,7 +377,7 @@ if __name__ == '__main__':
                 if state_send == 1:
                     dataToArduino[0] = state_send
                     writeBlock(dataToArduino)
-                    # Break out of state0
+                    state = 10
                     break;
 
                 # Get FPS info
@@ -406,16 +388,18 @@ if __name__ == '__main__':
             for val in fps_arr:
                 avg_fps_sum = avg_fps_sum + val
 
-            avg_fps = avg_fps_sum / len(fps_arr)
-            print("\nAverage FPS: ", avg_fps)
+            if len(fps_arr) != 0:
+                avg_fps = avg_fps_sum / len(fps_arr)
+                print("\nAverage FPS: ", avg_fps)
 
         # State 1: Robot has stopped; capture still photo, send dist & angle
         if state == 1:
+            camera.exposure_mode = 'auto'
             distance, angle_deg, angle_rad = state1()
             
             #### SENDS DISTANCE AND ANGLE TO ARDUINO ####
             print("Sending angle and distance")
-            dataToArduino[1] = int(round(angle_deg))
+            dataToArduino[1] = int(round(angle_deg + 31))
             dataToArduino[2] = int(round(distance))
             writeBlock(dataToArduino)       
             
@@ -426,3 +410,6 @@ if __name__ == '__main__':
         if state == 5: # FINALSTATE?
             cv.destroyAllWindows()
 
+        # Holding state for RPi
+        if state == 10:
+            print("Waiting to hear from Arduino")
