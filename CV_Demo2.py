@@ -377,6 +377,8 @@ if __name__ == '__main__':
                 if state_send == 1:
                     dataToArduino[0] = state_send
                     writeBlock(dataToArduino)
+                    
+                    # Send Pi into holding state
                     state = 10
                     break;
 
