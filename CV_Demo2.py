@@ -1,39 +1,49 @@
 #!/usr/bin/env python
 """Computer Vision module for Demo-2. SEED Lab: Group 007.
+
 REQUIREMENTS AND COMPATIBILITY:
 Requires install of numpy, picamera, time, math, and opencv. 
 Built for Raspberry Pi Camera Module v2, but works with other picameras.
-This file uses essential camera calibration matrices from the
-'CV_CameraCalibrationMatrices.npz' file created by 'CV_CameraCalibration.py',
+This file uses essential camera calibration data from the
+'CV_CameraCalibrationData.npz' file created by 'CV_CameraCalibration.py',
 and an optional value from the file 'CV_ZeroAngle.npz', created by
-'CV_ZeroAngleCalibration' for calibrating the zero angle. The camera
+'CV_ZeroAngleCalibration.py' for calibrating the zero angle. The camera
 calibration matrices need to be updated using the respective file for any new
 camera, and the zero angle value needs to be updated any time you reposition
 the camera.
+
 PURPOSE AND METHODS:
 This program uses computer vision techniques and opencv to capture a stream of
-images and detect Aruco markers. Opencv tequniques are used to get the
-translation vector to the Aruco marker. X, Y, Z values from the translation
+images and detect Aruco markers. In stage0, the program captures continuous
+images at high speed using the 'sports' exposure mode to reduce blur while the
+robot rotates in place. Once an Aruco marker is detected, a signal is sent to
+stop the robot from rotating, and Opencv tequniques are used to get the
+translation vector to the Aruco marker. X and Z values from the translation
 vector are used to calculate distance to the marker, and also calculate the
-angle from the camera to the marker using trigonometry and math functions.
+angle from the camera to the marker using trigonometry and math functions. The
+timing module is used to measure the FPS in state0 for testing.
+
 INSTRUCTIONS:
+Set 'DISP_STREAM_UNDETECTED' to 'True' in order to view the stream of images as
+they are captured in state0. Set 'DISP_STREAM_DETECTED' to 'True' in order to
+view the final capture in state0 where the marker is first detected. This image
+remains open when it is viewed, whereas the undetected stream automatically
+closes upon detection. Set 'DISP_PRECISE_IMG' to 'True' in order to view the
+image captured in state1 once the robot has stopped spinning. This is the image
+which distance and angle calculations are performed on. The waitkey for each set
+of displays can be adjusted as needed just below their T/F selection lines.
+
 Set the global variable 'USE_CALIB_ANGLE' to 'True' in order to use the zero
 angle calibration. The zero angle calibration should be performed every time
 you move the camera module. The calibration angle can be updated using the file
 'CV_ZeroAngle.py'. Set 'USE_CALIB_ANGLE' to 'False' if the value has not been
 updated.
-Set 'DISP_IMGS' to 'True' in order to view the stream of images as they are
-captured. The amount of time each image is visible can be adjusted by changing
-the WAIT_KEY value. This number is in milliseconds. It also affects the actual
-capture rate of the images in the stream, if set to 'True'.
-This program runs continuously. To exit, make sure the selected window is the
-running Python Shell, and press ctrl+C.
+
 OUTPUTS:
-The detected angles from the camera to the Aruco marker are given in degrees
-and radians in the 'main' function as 'angle_deg' and 'angle_rad',
-respectively.
-The detected distances from the camera to the Aruco marker are given in the
-'main' function as 'distance'.
+The detected angle from the camera to the Aruco marker is given in degrees
+in the 'main' function as 'angle_deg', and the detected distance is given in
+inches in the 'main' function as 'distance'. These values are also sent in
+'main' to the Arduino.
 """
 
 __author__ = "Jack Woolery and Jeffrey Hostetter"
@@ -75,15 +85,14 @@ CALIB_ANGLE_FILE = np.load('CV_ZeroAngle.npz')
 CALIB_ANGLE = - CALIB_ANGLE_FILE['zero_angle']
 
 
-# TO DISPLAY STREAM IMAGES
+# TO DISPLAY STREAM IMAGES (state0)
 DISP_STREAM_UNDETECTED = True
 STREAM_UNDETECTED_WAITKEY = 1
 DISP_STREAM_DETECTED = True
 STREAM_DETECTED_WAITKEY = 1
-# TO DISPLAY PRECISE IMAGE
+# TO DISPLAY PRECISE IMAGE (state1)
 DISP_PRECISE_IMG = True
 PRECISE_IMG_WAITKEY = 100
-##PRECISE_IMG_WAITKEY = 0
 
 # Get the Aruco dictionary
 arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_7X7_100)
@@ -109,9 +118,7 @@ DIST_COEFFS = KD['dist']
 def get_timing(start_time):
     runtime = time() - start_time
     fps = 1 / runtime
-    runtime = round(runtime, 3)
     fps = round(fps, 3)
-##    print("Runtime: ", runtime, "seconds")
     print("FPS: ", fps)
     print("\n")
     return fps
@@ -135,16 +142,11 @@ def detect_marker(img):
                                              cameraMatrix=newCamMtx,
                                              distCoeff=0
                                              )
-##    corners, ids, _ = cv.aruco.detectMarkers(image=img,
-##                                             dictionary=arucoDict,
-##                                             cameraMatrix=K,
-##                                             distCoeff=DIST_COEFFS
-##                                             ) 
+
     # If marker detected...
     if ids is not None:
         # Perform subpixel corner detection
         gray_img = cv.cvtColor(corr_img, cv.COLOR_BGR2GRAY)
-##        gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER,
                     100,
@@ -159,7 +161,6 @@ def detect_marker(img):
                             )
         # Frame detected marker
         img = cv.aruco.drawDetectedMarkers(corr_img, corners, ids)
-##        img = cv.aruco.drawDetectedMarkers(img, corners, ids)
 
         # Get distance and angle to marker
         distance, angle_rad, angle_deg = get_vals(corners, newCamMtx)
@@ -244,9 +245,6 @@ def readNumber():
 
 def state0(state, img):
     print("Running State 0")
-
-##    # Convert to grayscale for Aruco detection
-##    gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
                 
     # Detect if Aruco marker is present
     corners, ids, _ = cv.aruco.detectMarkers(image=img,
@@ -297,9 +295,6 @@ def state1():
         # Capture one image
         camera.capture(stream, format="bgr")
         img = stream.array
-
-##        # Convert to grayscale for Aruco detection
-##        gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
                 
         # Detect Aruco marker, and get detected angle and distance
         distance, angle_deg, angle_rad, img = detect_marker(img)
@@ -334,8 +329,8 @@ if __name__ == '__main__':
         # State0: Rotate robot and search continuously for marker
         if state == 0:
             # Set up capture array for PiCamera
+            # Use sports mode to reduce blur in state0 while turning
             camera.exposure_mode = 'sports'
-##            camera.resolution = (1280, 960)
             rawCapture = PiRGBArray(camera, size=(WIDTH, HEIGHT))
 
             # Default distance and angle
@@ -362,7 +357,7 @@ if __name__ == '__main__':
                     
                     # Send Pi into holding state
                     state = 10
-                    break;
+                    break
 
                 # Get FPS info
                 fps_arr.append(get_timing(start_time))
@@ -388,7 +383,7 @@ if __name__ == '__main__':
             writeBlock(dataToArduino)       
             
             # End after state 1
-            break;
+            break
 
         # Final state
         if state == 5: # FINALSTATE?
@@ -396,5 +391,4 @@ if __name__ == '__main__':
 
         # Holding state for RPi
         if state == 10:
-##            while state != 1:
             print("Waiting to hear from Arduino")

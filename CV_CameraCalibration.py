@@ -1,3 +1,52 @@
+#!/usr/bin/env python
+"""Camera Calibration Module for Demo-2. SEED Lab: Group 007.
+
+REQUIREMENTS AND COMPATIBILITY:
+Requires install of numpy, picamera, glob, and opencv.
+Built for use with a Raspberry PiCamera.
+
+PURPOSE:
+This is a program for getting camera calibration data for a given camera.
+It may be used to capture and save a number of calibration images, process
+the calibration images to get accurate corner locations and data, and generate
+the best fitting camera calibration matrices and data. This data is then saved
+to an external file 'CV_CameraCalibrationData.npz' for use in other programs.
+
+METHODS:
+This program uses a pi camera array to capture user images holding a calibration
+chessboardboard, and cv to display and save those images as they are captured.
+Glob is used to pull up each of the captured photos for processing. Specified
+sub-pixel criteria and specialized cv functions are used to get highly accurate
+corner detection within the images. A cv camera calibration function is used with
+this data in order to generate the most accurate camera calibration matrices and
+data possible from this function. Finally, a numpy save function is used to save
+the camera calibration matrix, and distortion coefficients to a file for use in
+other programs. Global variables at the top of the file are used to select what
+functions the user would like to perform from this program.
+
+INSTRUCTIONS:
+Set the global variable "CAPTURE_CALIB_PHOTOS" to "True" to capture photos of a
+printed calibration chessboard in a variety of positions using the PiCamera. Set
+the global variable "NUM_PHOTOS" equal to an integer to determine the number of
+calibration photos to be captured. No less than ten photos should be used for any
+calibration. Set the global variable "CALIB_FROM_PHOTOS" to "True" to calibrate
+from the captured calibration photos within the directory. Please ensure all
+photos in the directory are from the same calibration, as all '.png's within the
+directory will be used by the program to generate the calibration data. This data
+can then be imported to another program from the file
+'CV_CameraCalibrationData.npz'.
+
+OUTPUTS:
+The camera calibration matrix and distortion coefficients are automatically
+saved as 'k' and 'dist' respectively in the file 'CV_CameraCalibrationData.npz'.
+
+REFERENCE:
+Much of the camera calibration code is taken directly from, or heavily inspired by
+the example in the online opencv docs at the following address:
+https://docs.opencv.org/master/dc/dbb/tutorial_py_calibration.html
+Changes were made for easier use and integration, along with some custom settings.
+"""
+
 import numpy as np
 import cv2 as cv
 import glob
@@ -46,7 +95,7 @@ def calibrate_from_photos():
     objp[:,:2] = np.mgrid[0:9,0:6].T.reshape(-1,2)
     # Scale to measured length of chessboard square
     objp = objp * SQUARE_LEN
-
+    # Initialize empty points arrays
     objpoints = []
     imgpoints = []
 
