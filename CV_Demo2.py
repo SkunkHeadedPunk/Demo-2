@@ -82,7 +82,7 @@ DISP_STREAM_DETECTED = True
 STREAM_DETECTED_WAITKEY = 1
 # TO DISPLAY PRECISE IMAGE
 DISP_PRECISE_IMG = True
-PRECISE_IMG_WAITKEY = 5
+PRECISE_IMG_WAITKEY = 0
 
 # AMOUNT OF TIME TO DISPLAY STREAM IMAGES
 WAIT_KEY = 1
@@ -101,6 +101,7 @@ arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_7X7_100)
 
 # Measured Aruco marker length in inches
 MARKER_LENGTH_IN = 3.8125
+MARKER_LENGTH_IN = 7.75
 
 # Image capture dimensions
 # Max res: 3280 x 2464
@@ -137,12 +138,6 @@ def get_timing(start_time):
 # Detects marker and precise corners
 def detect_marker(img):
     # Get new camera matrix
-##    newCamMtx, roi = cv.getOptimalNewCameraMatrix(K,
-##                                                  DIST_COEFFS,
-##                                                  (WIDTH, HEIGHT),
-##                                                  1,
-##                                                  (WIDTH, HEIGHT)
-##                                                  )
     newCamMtx, roi = cv.getOptimalNewCameraMatrix(cameraMatrix=K,
                                                   distCoeffs=DIST_COEFFS,
                                                   imageSize=(WIDTH, HEIGHT),
@@ -169,7 +164,7 @@ def detect_marker(img):
         for corner in corners:
             cv.cornerSubPix(image=gray_img,
                             corners=corner,
-                            winSize=(3,3),
+                            winSize=(2,2),
                             zeroZone=(-1,-1),
                             criteria=criteria
                             )
@@ -218,11 +213,6 @@ def get_vals(corners, newCamMtx):
     angle_deg = angle_rad * 180 / math.pi
     print("angle: ", round(angle_deg, 2), "degrees;     ",
           round(angle_rad, 2), "radians")
-
-##    # Send angle and distance to Arduino
-##    dataToArduino[1] = int(round(angle_deg))
-##    dataToArduino[2] = int(round(distance))
-##    writeBlock(dataToArduino)
     
     return distance, angle_rad, angle_deg
 
@@ -354,6 +344,7 @@ if __name__ == '__main__':
         if state == 0:
             # Set up capture array for PiCamera
             camera.exposure_mode = 'sports'
+##            camera.resolution = (1280, 960)
             rawCapture = PiRGBArray(camera, size=(WIDTH, HEIGHT))
 
             # Default distance and angle
