@@ -82,7 +82,8 @@ DISP_STREAM_DETECTED = True
 STREAM_DETECTED_WAITKEY = 1
 # TO DISPLAY PRECISE IMAGE
 DISP_PRECISE_IMG = True
-PRECISE_IMG_WAITKEY = 0
+PRECISE_IMG_WAITKEY = 100
+##PRECISE_IMG_WAITKEY = 0
 
 # AMOUNT OF TIME TO DISPLAY STREAM IMAGES
 WAIT_KEY = 1
@@ -100,8 +101,8 @@ DISP_SCALE = 1
 arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_7X7_100)
 
 # Measured Aruco marker length in inches
-MARKER_LENGTH_IN = 3.8125
-MARKER_LENGTH_IN = 7.75
+##MARKER_LENGTH_IN = 3.8125   # Small marker
+MARKER_LENGTH_IN = 7.75     # Large marker
 
 # Image capture dimensions
 # Max res: 3280 x 2464
@@ -116,11 +117,6 @@ factor = str(FACTOR)
 KD = np.load('CV_ChessboardCalibrationMatrices_scale'+factor+'.npz')
 K = KD['k']
 DIST_COEFFS = KD['dist']
-
-# Physical distances relative to robot
-DIST_FRONT_AXLE = 0
-DIST_CENTER_ROTATION = 8
-DIST_FROM_MARKER = 8
 
 
 # Gets runtime / FPS data
@@ -153,10 +149,17 @@ def detect_marker(img):
                                              cameraMatrix=newCamMtx,
                                              distCoeff=0
                                              )
+##    corners, ids, _ = cv.aruco.detectMarkers(image=img,
+##                                             dictionary=arucoDict,
+##                                             cameraMatrix=K,
+##                                             distCoeff=DIST_COEFFS
+##                                             ) 
     # If marker detected...
     if ids is not None:
         # Perform subpixel corner detection
         gray_img = cv.cvtColor(corr_img, cv.COLOR_BGR2GRAY)
+##        gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER,
                     100,
                     0.0001
@@ -170,6 +173,8 @@ def detect_marker(img):
                             )
         # Frame detected marker
         img = cv.aruco.drawDetectedMarkers(corr_img, corners, ids)
+##        img = cv.aruco.drawDetectedMarkers(img, corners, ids)
+
         # Get distance and angle to marker
         distance, angle_rad, angle_deg = get_vals(corners, newCamMtx)
 
@@ -405,4 +410,5 @@ if __name__ == '__main__':
 
         # Holding state for RPi
         if state == 10:
+##            while state != 1:
             print("Waiting to hear from Arduino")
