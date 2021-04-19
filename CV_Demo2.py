@@ -85,18 +85,6 @@ DISP_PRECISE_IMG = True
 PRECISE_IMG_WAITKEY = 100
 ##PRECISE_IMG_WAITKEY = 0
 
-# AMOUNT OF TIME TO DISPLAY STREAM IMAGES
-WAIT_KEY = 1
-# Set wait key to minimum for fastest stream when not displaying
-##if DISP_STREAM == False:
-##    WAIT_KEY = 1
-
-## __________IMAGE SCALING__________ ##
-# Image scale for precise detection
-IMG_CAPTURE_SCALE = 1
-# Scale for resizing images for display
-DISP_SCALE = 1
-
 # Get the Aruco dictionary
 arucoDict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_7X7_100)
 
@@ -112,9 +100,7 @@ width, height = str(WIDTH), str(HEIGHT)
 
 # Load camera properties matrices from file
 # This file is generated from the camera calibration
-FACTOR = 1  # Scale factor for calibration - CV use only
-factor = str(FACTOR)
-KD = np.load('CV_ChessboardCalibrationMatrices_scale'+factor+'.npz')
+KD = np.load('CV_CameraCalibrationData.npz')
 K = KD['k']
 DIST_COEFFS = KD['dist']
 

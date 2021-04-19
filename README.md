@@ -13,7 +13,6 @@ __File Organization__
 
 ArucoMarker_7x7_id0.pdf: 7x7 Aruco marker image 
 
-ArucoMarker_4x4_id0.pdf: 4x4 Aruco marker image
 
 CV_CameraCalibration.py: Raspberry Pi program to get the camera calibration data. Includes image
 	capture, image processing, calibration data generation, and storage of data to file.
