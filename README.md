@@ -27,7 +27,7 @@ CV_Demo2.py: Main Raspberry Pi computer vision module for detecting Aruco marker
 Framework_4_12_21.ino: Arduino file outlining the finite state machine that the Arduino will be 	
 	running, as well as the general structure of variables, communication with the Pi, and locations of control systems. 
 	
-Demo2ArduinoCommunication.ino: Arduino file outlining the framework for communication between the 
+demo2ArduinoCommunication.ino: Arduino file outlining the framework for communication between the 
 	Arduino and the Pi, from the side of the Arduino. This file also shows the order of the  
 	data in the transmitted array. 
 
