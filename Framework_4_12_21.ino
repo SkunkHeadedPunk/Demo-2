@@ -1,3 +1,6 @@
+// Logan Meyer, Thomas Klinedinst    EENG 350    Demo 2 
+// This file shows the framework for the final code which will be implemented in Demo 2. It is not designed to run in its current state. 
+
 //arduino running as a fsm.
 // lowercase variables are data that pi gives though arduino can modify, ie set to 0.  upperacase are variables that arduino gives
 // 0: Initialized and starts spinning 180 degrees to one direction. ifDetectedAruco = false;  ifaccuratereading = false; ifaccurateangle = false; angletospin = 0;  ifdistancefound = false; distancetogo = 0; 
