@@ -1,3 +1,6 @@
+// Jeffrey Hostetter     EENG 350   
+// This file outlines the communication system in place between the Arduino and the Raspberry Pi. 
+
 #include <Wire.h>
 
 #define ADDRESS           0x04
