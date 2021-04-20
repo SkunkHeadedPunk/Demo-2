@@ -1,25 +1,31 @@
-//arduino running as a fsm.
-//seed demo2 cv_demo2.py 
-// lowercase variables are data that pi gives though arduino can modify, ie set to 0.  upperacase are variables that arduino gives
-// 0: Initialized and starts spinning 180 degrees to one direction. ifDetectedAruco = false;  ifaccuratereading = false; ifaccurateangle = false; angletospin = 0;  ifdistancefound = false; distancetogo = 0; 
-// 0: If detected aruco robot stops. ifDetectedAruco = true;
-// 1: PI gets more accurate reading.  ifaccurateangle = true; angletospin = bits of angle not sure;
-// 2: Arduino spins back to correct angle then goes to state 3;
-// 3: PI reads distance to aruco and passes ifdistancefound = true; distancetogo = distance to go not sure;
-// 4: Arduino goes to aruco and once reaches aruco goes to state 4;
-// 5: at the marker.
-// *Note for setting up the  PI on a fsm simply pass pass the value of switch somewhere through to the pi.
+// Logan Meyer, Thomas Klinedinst, Jeffrey Hostetter     EENG 350           Last Modified: 4 19 2021
+// This is the Arduino code used to accomplish the tasks for Demo2. 
 
-//not sure about this but just thinking I don't think we can’t do that thing where we just pass the aruco for the final demo, because there is the possibility of 2 or more arucos in frame and unsure of angle, not sure about this though
-// if we do it like the exmaple it ensures that there is never more then one aruco code in frame at any one time.
+/* For this file to run properly:  
+    - Must include libraries containing "Encoder.h", "DualMC33926MotorShield.h", and "Wire.h"
+    - Must have Respberry Pi with proper I2C communication running "CV_Demo2.py"  
+ 
+ In this code, the Arduino is running as a Finite State Machine with the following states:
+  0: Robot spins at constant speed until Pi detects marker (piState == 1). Robot then stops to let Pi take high-res photo
+  1: Arduino receives data from Pi, resets angular positions, and does initial calculations 
+  2: Arduino turns to face the marker, using a PI control system
+  3: Stops motors, determines distance needed to drive to the marker
+  4: Robot drives to the marker using a PI control system 
+  5: Robot spins 90 degrees to the right (hard-coded) 
+  6: Robot spins in circle around marker (hard-coded) 
+  7: Robot stops motors. 
+*/
+
+
 
 #include <Encoder.h>
 #include <DualMC33926MotorShield.h>
 #include <Wire.h>
 
-#define demo              2 // WHICH PART OF THE DEMO THE CODE IS FOR 
-#define diameter          0.5 // Diameter of the wheel, in ft (PRE-TAPE) 
+#define diameter          0.5 // Diameter of the wheel, in ft 
 #define countsPerRotation 3200 
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~PIN LOCATTIONS FOR THE ARDUINO~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define motorRPWM         10
 #define motorLPWM         9 
 #define voltageRDir       7   // Direction for Left motor
@@ -28,9 +34,11 @@
 #define ADDRESS           0x04 
 
 Encoder rightWheel(2,5);  // 2 is an interrupt pin (A/ Yellow Right)    ***DON'T USE PIN 1***
-Encoder leftWheel(3,6);   // 3 is an interrupt pin (A/ Yellow Left)   
-DualMC33926MotorShield md;
+Encoder leftWheel(3,6);   // 3 is an interrupt pin (A/ Yellow Left)    
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+DualMC33926MotorShield md;
 
 int state = 0;
 int piState = 0;   
@@ -54,7 +62,6 @@ float goalAngleAngle = 0;
 float goalDistanceAngle = 0;
 float goalDistance = 0;            // Desired linear distance traveled, in ft (CHANGE PER RUN)
 float directiongoing = -1; ///  1 if counter clockwise    ////-1 if backwards or clockwise
-//////////
 float angularPositionL;
 float linearPositionL;
 float angularPositionR; 
@@ -63,9 +70,9 @@ float radPerCount;
 float circumference; 
 float speedR = 100;//20;   // Built-in variable for the speed of the motor (Right), Between -400, 400
 float speedL = 100;//20;   // Built-in variable for the speed of the motor (Left), Between -400, 400
-/////control sytem variables here for rotational control
-float fudge = 0;
 
+/////control sytem variables here for rotational control
+float fudge = 0; // Correction factor
 float KpLs = 0.74; // 0.64  Proportional gain of left motor in spin test (unitless)
 float KiLs = 0.00019; //0.0001;    0.00019 for pi/2 and under 0.00016 for pi and 0.00012 for 2*pi   Integrator gain of left motor in spin test (v/encoder rads)
 float KpRs = 0.74; // 0.64;
@@ -80,6 +87,7 @@ float KiR = 0.0002; //0.0001;
 float delayValue = 180;//40;      // Makes sure the Control system doesn't run twice with the same data (ensures no div/0)
 float timetogo = 5000;
 float triggertime = 0;
+
   ///static control variables
   float rL, rR, yL, yR, eL, eR;
   float IL = 0;
@@ -88,9 +96,7 @@ float triggertime = 0;
   float Tc = 0;
 
 
-
-
-//defines for the controll SYSTEM
+//defines for the control system
 #define diameter 0.5 // Diameter of the wheel, in ft  
 
 //float diametermod = (float) 0.501 - ( (float) (( (float) goalDistance / (float) 10) * (float) 0.01) );  
@@ -114,7 +120,6 @@ void setup() {
 }
 
 void loop() {
-  //Serial.println(piState);
   static float uR = speedR;
   static float uL = speedL;
   
@@ -149,17 +154,9 @@ void loop() {
   linearPositionL = -( angularPositionL * circumference / (float) (2*PI) );   // Negative just to account for the proper direction
   linearPositionR = ( angularPositionR * circumference / (float) (2*PI) );  
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-/*Jeffery need to get values for each of these here. I assume easiest to bitwise and to isolate and shift >> for each bool.  for each angle i assume similar
-ifDetectedAruco = fixme;  //ie (big_32_Byte_Value & 001) >>1)  i assume something like this but not sure how to convert the value from pi to here.
-ifaccuratereading = fixme; // Could be replaced by just checking if the array is populated
-*****ifaccurateangle = fixme; // For this demo, the same as ifaccuratereading
-*****ifdistancefound = fixme; 
-ifArucoLocalized = fixme; // Signals that the distance/angle have been determined
-angletospin = fixme;
-distancetogo = fixme;
-*/
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//          F   I   N   I   T   E      S   T   A   T   E      M   A   C   H   I   N   E   
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   switch (state)
   {
@@ -179,14 +176,7 @@ distancetogo = fixme;
         }
         break;
     case 1: 
-        //Serial.println(angleRead); 
-        //Serial.println(distanceRead);  
-        if(angleRead != 149){  
-    
-          
-          //Serial.println("MADE IT! AngleRead: ");
-          //Serial.println(angleRead); 
-          //Serial.println(distanceRead);
+        if(angleRead != 149){       // Once angleRead changes, Arduino knows that the Pi sent the accurate angle
           angleToSpin = PI * (float) angleRead / (float) 180;
           goalAngle = angleToSpin;
           goalAngleAngle = (goalAngle*(float) wheelbase/ (float) diametermodspin ) - (float) 0.08; //wheelbas*wheelbase/r
@@ -202,18 +192,14 @@ distancetogo = fixme;
           }
            if(abs(angleRead) < 11){
              fudge = (float) 0.1;
-
           }
-      
-          //Serial.println("End of case 1");
-          //Serial.println(goalAngleAngle); 
         }  
 
         break;
         
     case 2:          
           //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
-          // START START START CONTROL SYSTEM FOR TURNING angleToSpin 
+          // START CONTROL SYSTEM FOR TURNING angleToSpin 
           //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
           
           rL = goalAngleAngle;
@@ -229,8 +215,6 @@ distancetogo = fixme;
 
           uL = KpLs*eL + KiLs*IL;
           uR = KpRs*eR + KiRs*IR;
-
-
 
           if(abs(angularPositionL) >= (abs(goalAngleAngle)-fudge)){
               loganCSdone = true;
@@ -265,8 +249,8 @@ distancetogo = fixme;
 
           motorSpeedL = 0;
           motorSpeedR = 0;   
-          if(distanceRead != 0){ ////////////////////////////////////////// fix me fixme ^((^^(^69696969696969696696966996696969696969696969696969696969696need to know when pi has correct disatnc
-            distanceToGo = (distanceRead / (float) 12) - (float) 1.1; /////////////////////////////// fix me fixme ^((^^(^69696969696969696696966996696969696969696969696969//////////////// fix me fixme ^((^^(^69696969696969696696966996696969696969696969696969chanbge to 1
+          if(distanceRead != 0){ // Once distance changes, indicates Pi sent accurate distance
+            distanceToGo = (distanceRead / (float) 12) - (float) 1.1; // Converts Pi distance to feet, then accounts for stopping away from the beacon
             goalDistanceAngle = (float) 1*distanceToGo* (float) 2/ (float) diametermod;
             state = 4;
             directiongoing = 1;
@@ -308,20 +292,18 @@ distancetogo = fixme;
           motorSpeedR = (speedR*uR* (float) -1);
 
            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          // END END END START START START CONTROL SYSTEM FOR DRIVING TO distanceToGo 
+          // END END END CONTROL SYSTEM FOR DRIVING TO distanceToGo 
           //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
            if (loganCSdone) {  
             loganCSdone = false;
-            state = 5;///////////////////////////////////////////////////////////////////////////if demo 2 just make this state 7
-            IL = 0;
+            state = 5;                                                                    // ~~~~~FOR DOING DEMO PART 2, CHANGE TO GO TO STATE 7 ~~~~~~~~~~~~~
+            IL = 0;                                                                       //  (This could be done with a button/ jumper wire/ Pi communication)
             IR = 0;
             angularPositionL = 0;
             angularPositionR = 0;
             motorSpeedL = 0;
             motorSpeedR = 0;   
           }
-          //Serial.println("Case 4");
-          //Serial.println(loganCSdone);
           break;  
           
    case 5:
@@ -329,10 +311,8 @@ distancetogo = fixme;
           //turn90LinearPosDest = ( PI / (float) 2 ) * ( (float) wheelbase / (float) 2);
           motorSpeedL = 80;
           motorSpeedR = 80; 
-
-          
          
-          turn90LinearPosOld = ((PI/(float)2)*(float) wheelbase/ (float) diametermodspin ) * (float) 1;                                      /////////////////////////change to 1 for spin
+          turn90LinearPosOld = ((PI/(float)2)*(float) wheelbase/ (float) diametermodspin ) * (float) 1;  // Determines 90 degree turn based on arc length traced by wheel
          if(abs(angularPositionL) >= turn90LinearPosOld){
           
             motorSpeedL = 0;
@@ -343,20 +323,16 @@ distancetogo = fixme;
             angularPositionL = 0;
             angularPositionR = 0;
          }
-          //Serial.println("Case 5"); 
           break;
          
                
    case 6:
-
+            // Turns in circle around marker
             motorSpeedL = 80; 
             motorSpeedR =  - (float) 1.9*motorSpeedL;     // Hardcode to turn in circle, scale is the difference in circumference for each wheel 
-            if(abs(angularPositionR) >= (float) 46.5){
+            if(abs(angularPositionR) >= (float) 46.5){      // 46.5 is number of radians the outer wheel needs to turn (adjusts how much of the circle is completed)
               state = 7;
             }
-
-         // state = 6;    
-        
         break;
        
     case 7:  
