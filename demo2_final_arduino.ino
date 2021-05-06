@@ -1,4 +1,4 @@
-// Logan Meyer, Thomas Klinedinst, Jeffrey Hostetter     EENG 350           Last Modified: 4 19 2021
+// Logan Meyer, Thomas Klinedinst, Jeffrey Hostetter     EENG 350           Last Modified: 5 5 2021
 // This is the Arduino code used to accomplish the tasks for Demo2. 
 
 /* For this file to run properly:  
@@ -161,7 +161,7 @@ void loop() {
   switch (state)
   {
     case 0: 
-        motorSpeedL = 70;
+        motorSpeedL = 71;  // Accounts for unpredictable error dependent on how long the robot has been turning and scanning
         motorSpeedR = 70;
        
         //Robot spins slowly until detecting Aruco 
